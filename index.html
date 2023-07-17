@@ -28,6 +28,12 @@
       const chartMcCustom = document.getElementById("chartMcCustom");
       const chartMcMined = document.getElementById("chartMcMined");
 
+      async function getUsername(uuid){
+        const url = `https://api.mojang.com/user/profile/02553085a70c4128a1430875048f7914` 
+        const response = await fetch(url);
+        console.log(response);
+      }
+    getUsername()
       async function fetchData() {
         const url =
           "http://127.0.0.1/dev/stats_mc/stats/02553085-a70c-4128-a143-0875048f7914.json";
