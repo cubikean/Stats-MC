@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>STATS - MC</title>
+    <style>
+      .container{
+        display: flex;
+        flex-direction: column;
+      }
+       canvas{
+        max-width: 500px;
+        max-height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+    <canvas id="chartMcKilledBy"></canvas>
+    <canvas id="chartMcCustom"></canvas>
+    <canvas id="chartMcMined"></canvas>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+      const chartMcKilledBy = document.getElementById("chartMcKilledBy");
+      const chartMcCustom = document.getElementById("chartMcCustom");
+      const chartMcMined = document.getElementById("chartMcMined");
+
+      async function fetchData() {
+        const url =
+          "http://127.0.0.1/dev/stats_mc/stats/02553085-a70c-4128-a143-0875048f7914.json";
+        const response = await fetch(url);
+        const dataAll = await response.json();
+        const stats = dataAll.stats;
+        // console.log(stats);
+
+        function removeSubstringFromKeys(obj, substring) {
+          const keys = Object.keys(obj);
+          for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            if (key.includes(substring)) {
+              const newKey = key.replace(substring, "");
+              obj[newKey] = obj[key];
+              delete obj[key];
+              if (typeof obj[newKey] === "object") {
+                removeSubstringFromKeys(obj[newKey], substring);
+              }
+            }
+          }
+        }
+
+        removeSubstringFromKeys(stats, "minecraft:");
+        const modifiedJsonStr = JSON.stringify(stats, null, 2);
+        const data = JSON.parse(modifiedJsonStr);
+        console.log(data);
+
+        new Chart(chartMcKilledBy, {
+          type: "doughnut",
+          data: {
+            labels: Object.keys(stats["killed_by"]),
+            datasets: [
+              {
+                label: "Killed by",
+                data: Object.values(stats["killed_by"]),
+                borderWidth: 1,
+              },
+            ],
+          },
+          
+        });
+        const labelsCustom = Object.keys(stats["custom"]);
+        const dataValueCustom = Object.values(stats["custom"]);
+
+        // Combine the labelsCustom and data into an array of objects
+        const combinedDataCustom = labelsCustom.map((label, index) => ({ label, value: dataValueCustom[index] }));
+
+        // Sort the combined data in descending order based on the values
+        const sortedDataCustom = combinedDataCustom.sort((a, b) => b.value - a.value);
+
+        // Take the top 5 labels and values
+        const top5DataCustom = sortedDataCustom.slice(0, 5);
+        const top5LabelsCustom = top5DataCustom.map(entry => entry.label);
+        const top5ValuesCustom = top5DataCustom.map(entry => entry.value);
+
+        new Chart(chartMcCustom, {
+          type: "doughnut",
+          data: {
+            labels: top5LabelsCustom,
+            datasets: [
+              {
+                label: "mined",
+                data: top5ValuesCustom,
+                borderWidth: 1,
+              },
+            ],
+          },
+        });
+        
+        const labels = Object.keys(stats["mined"]);
+        const dataValue = Object.values(stats["mined"]);
+
+        // Combine the labels and data into an array of objects
+        const combinedData = labels.map((label, index) => ({ label, value: dataValue[index] }));
+
+        // Sort the combined data in descending order based on the values
+        const sortedData = combinedData.sort((a, b) => b.value - a.value);
+
+        // Take the top 5 labels and values
+        const top5Data = sortedData.slice(0, 5);
+        const top5Labels = top5Data.map(entry => entry.label);
+        const top5Values = top5Data.map(entry => entry.value);
+
+        new Chart(chartMcMined, {
+          type: "doughnut",
+          data: {
+            labels: top5Labels,
+            datasets: [
+              {
+                label: "mined",
+                data: top5Values,
+                borderWidth: 1,
+              },
+            ],
+          },
+        });
+
+      }
+      fetchData();
+    </script>
+  </body>
+</html>
