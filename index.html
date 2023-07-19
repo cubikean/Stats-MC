@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>STATS - MC</title>
     <style>
+      *{
+        font-family: 'Courier New', Courier, monospace;
+      }
       .container{
         display: flex;
         flex-direction: column;
@@ -12,28 +15,23 @@
        canvas{
         max-width: 500px;
         max-height: 500px;
+        margin-bottom: 50px;
+      }
+      .distance-list span{
+        font-weight: 700;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-    <canvas id="chartMcKilledBy"></canvas>
-    <canvas id="chartMcCustom"></canvas>
-    <canvas id="chartMcMined"></canvas>
+    <div class="distance">
+      <h2>Distance parcourue (Km)</h2>
+      <ul class="distance-list">
+
+      </ul>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-      const chartMcKilledBy = document.getElementById("chartMcKilledBy");
-      const chartMcCustom = document.getElementById("chartMcCustom");
-      const chartMcMined = document.getElementById("chartMcMined");
-
-      async function getUsername(uuid){
-        const url = `https://api.mojang.com/user/profile/02553085a70c4128a1430875048f7914` 
-        const response = await fetch(url);
-        console.log(response);
-      }
-    getUsername()
       async function fetchData() {
         const url =
           "http://127.0.0.1/dev/stats_mc/stats/02553085-a70c-4128-a143-0875048f7914.json";
@@ -60,77 +58,132 @@
         removeSubstringFromKeys(stats, "minecraft:");
         const modifiedJsonStr = JSON.stringify(stats, null, 2);
         const data = JSON.parse(modifiedJsonStr);
-        console.log(data);
+        // console.log(data);
 
-        new Chart(chartMcKilledBy, {
-          type: "doughnut",
-          data: {
-            labels: Object.keys(stats["killed_by"]),
-            datasets: [
-              {
-                label: "Killed by",
-                data: Object.values(stats["killed_by"]),
-                borderWidth: 1,
-              },
-            ],
-          },
+        Object.keys(stats).forEach((element, index) => {
           
-        });
-        const labelsCustom = Object.keys(stats["custom"]);
-        const dataValueCustom = Object.values(stats["custom"]);
+          const value = stats[element]
+          const labels = Object.keys(value);
+          
+          const cmLabels = labels.filter(label => label.endsWith('_cm'))
 
-        // Combine the labelsCustom and data into an array of objects
-        const combinedDataCustom = labelsCustom.map((label, index) => ({ label, value: dataValueCustom[index] }));
+          cmLabels.forEach(label => {
+            const kmLabel = label.replace('_cm', '_km')
+            value[kmLabel] = value[label] / 100000
+            delete value[label]
+            const distanceList = document.querySelector('.distance-list')
+            const distance = document.createElement("li");
+            distance.id = label
+            distance.innerHTML += `<span>${label.slice(0, label.lastIndexOf('_one'))}</span>` + ': ' +  value[kmLabel]
+            distanceList.appendChild(distance)
+            console.log(kmLabel,value[kmLabel])
+          });
 
-        // Sort the combined data in descending order based on the values
-        const sortedDataCustom = combinedDataCustom.sort((a, b) => b.value - a.value);
+          let canvasElement = document.getElementById(element);
 
-        // Take the top 5 labels and values
-        const top5DataCustom = sortedDataCustom.slice(0, 5);
-        const top5LabelsCustom = top5DataCustom.map(entry => entry.label);
-        const top5ValuesCustom = top5DataCustom.map(entry => entry.value);
+          // If the canvas element doesn't exist, create it
+          if (!canvasElement) {
+            canvasElement = document.createElement("canvas");
+            canvasElement.id = element;
+            document.body.appendChild(canvasElement); // Append the canvas to the body, change this if you want to add it to a different element.
+          }
 
-        new Chart(chartMcCustom, {
+          const ctx = canvasElement.getContext("2d");
+
+          const combinedData = Object.keys(value).map((label, index) => ({ label, value: value[label] }));
+          const sortedData = combinedData.sort((a, b) => b.value - a.value);
+
+          const top5Data = sortedData.slice(0, 10);
+          const top5Label = top5Data.map(hightest => hightest.label)
+          const top5Values = top5Data.map(hightest => hightest.value)
+
+          console.log(element)
+          new Chart(ctx, {
           type: "doughnut",
           data: {
-            labels: top5LabelsCustom,
+            labels: top5Label,
             datasets: [
               {
-                label: "mined",
-                data: top5ValuesCustom,
-                borderWidth: 1,
-              },
-            ],
-          },
-        });
-        
-        const labels = Object.keys(stats["mined"]);
-        const dataValue = Object.values(stats["mined"]);
-
-        // Combine the labels and data into an array of objects
-        const combinedData = labels.map((label, index) => ({ label, value: dataValue[index] }));
-
-        // Sort the combined data in descending order based on the values
-        const sortedData = combinedData.sort((a, b) => b.value - a.value);
-
-        // Take the top 5 labels and values
-        const top5Data = sortedData.slice(0, 5);
-        const top5Labels = top5Data.map(entry => entry.label);
-        const top5Values = top5Data.map(entry => entry.value);
-
-        new Chart(chartMcMined, {
-          type: "doughnut",
-          data: {
-            labels: top5Labels,
-            datasets: [
-              {
-                label: "mined",
+                label: element,
                 data: top5Values,
                 borderWidth: 1,
               },
             ],
           },
+          options: {
+          plugins: {
+            legend: {
+              title: {
+                display: true,
+                text: element,
+                font:{
+                  size:24,
+                }
+              }
+            }
+          }
+        }
+
+          
         });
+        });
+
+        
+        // const labelsCustom = Object.keys(stats["custom"]);
+        // const dataValueCustom = Object.values(stats["custom"]);
+
+        // // Combine the labelsCustom and data into an array of objects
+        // const combinedDataCustom = labelsCustom.map((label, index) => ({ label, value: dataValueCustom[index] }));
+
+        // // Sort the combined data in descending order based on the values
+        // const sortedDataCustom = combinedDataCustom.sort((a, b) => b.value - a.value);
+
+        // // Take the top 5 labels and values
+        // const top5DataCustom = sortedDataCustom.slice(0, 5);
+        // const top5LabelsCustom = top5DataCustom.map(entry => entry.label);
+        // const top5ValuesCustom = top5DataCustom.map(entry => entry.value);
+
+        // new Chart(chartMcCustom, {
+        //   type: "doughnut",
+        //   data: {
+        //     labels: top5LabelsCustom,
+        //     datasets: [
+        //       {
+        //         label: "mined",
+        //         data: top5ValuesCustom,
+        //         borderWidth: 1,
+        //       },
+        //     ],
+        //   },
+        // });
+        
+        // const labels = Object.keys(stats["mined"]);
+        // const dataValue = Object.values(stats["mined"]);
+
+        // // Combine the labels and data into an array of objects
+        // const combinedData = labels.map((label, index) => ({ label, value: dataValue[index] }));
+
+        // // Sort the combined data in descending order based on the values
+        // const sortedData = combinedData.sort((a, b) => b.value - a.value);
+
+        // // Take the top 5 labels and values
+        // const top5Data = sortedData.slice(0, 5);
+        // const top5Labels = top5Data.map(entry => entry.label);
+        // const top5Values = top5Data.map(entry => entry.value);
+
+        // new Chart(chartMcMined, {
+        //   type: "doughnut",
+        //   data: {
+        //     labels: top5Labels,
+        //     datasets: [
+        //       {
+        //         label: "mined",
+        //         data: top5Values,
+        //         borderWidth: 1,
+        //       },
+        //     ],
+        //   },
+        // });
 
       }
       fetchData();
