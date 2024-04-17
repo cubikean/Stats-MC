@@ -1,5 +1,5 @@
 async function fetchData() {
-    const url = "http://127.0.0.1/dev/stats_mc/stats/YOUR_JSON.json";
+    const url = "./stats/YOUR_JSON.json";
     const response = await fetch(url);
     const dataAll = await response.json();
     const stats = dataAll.stats;
